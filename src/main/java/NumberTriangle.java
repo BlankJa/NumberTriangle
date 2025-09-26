@@ -25,7 +25,6 @@ import java.util.List;
  * in this file. We have not included any code to enforce the structure noted above,
  * and you don't have to write any either.
  *
- *
  * See NumberTriangleTest.java for a few basic test cases.
  *
  * Extra: If you decide to solve the Project Euler problems (see main),
@@ -67,7 +66,21 @@ public class NumberTriangle {
      * Note: a NumberTriangle contains at least one value.
      */
     public void maxSumPath() {
-        // for fun [not for credit]:
+        // [optional / not for credit]
+        if (isLeaf()) {
+            return;
+        }
+        if (left != null) {
+            left.maxSumPath();
+        }
+        if (right != null) {
+            right.maxSumPath();
+        }
+        int leftVal = (left == null) ? Integer.MIN_VALUE : left.root;
+        int rightVal = (right == null) ? Integer.MIN_VALUE : right.root;
+        this.root = this.root + Math.max(leftVal, rightVal);
+        this.left = null;
+        this.right = null;
     }
 
     public boolean isLeaf() {
@@ -89,75 +102,94 @@ public class NumberTriangle {
      * @return the root value at the location indicated by path
      */
     public int retrieve(String path) {
-        // TODO implement this method (not required for your request)
-        return -1;
+        NumberTriangle cur = this;
+        if (path == null || path.isEmpty()) {
+            return cur.root;
+        }
+        for (int i = 0; i < path.length(); i++) {
+            char ch = path.charAt(i);
+            if (ch == 'l') {
+                if (cur.left == null) {
+                    throw new IndexOutOfBoundsException("Path goes left at step " + i + " but no left child exists.");
+                }
+                cur = cur.left;
+            } else if (ch == 'r') {
+                if (cur.right == null) {
+                    throw new IndexOutOfBoundsException("Path goes right at step " + i + " but no right child exists.");
+                }
+                cur = cur.right;
+            } else {
+                throw new IllegalArgumentException("Invalid path character '" + ch + "' at index " + i + " (only 'l' or 'r' allowed).");
+            }
+        }
+        return cur.root;
     }
 
     /**
      * Read in the NumberTriangle structure from a file.
      *
-     * You may assume that it is a valid format with a height of at least 1,
-     * so there is at least one line with a number on it to start the file.
+     * Format: each non-empty line contains one row of space-separated integers.
+     * Row i (0-based) must contain exactly i+1 integers.
      *
-     * See resources/input_tree.txt for an example NumberTriangle format.
+     * Example:
+     *  3
+     *  7 4
+     *  2 4 6
+     *  8 5 9 3
      *
-     * @param fname the file to load the NumberTriangle structure from (classpath resource)
+     * @param fname the resource file (on classpath) to load the NumberTriangle structure from
      * @return the topmost NumberTriangle object in the NumberTriangle structure read from the specified file
-     * @throws IOException may naturally occur if an issue reading the file occurs
+     * @throws IOException if an issue reading the file occurs or if resource not found
      */
     public static NumberTriangle loadTriangle(String fname) throws IOException {
-        // Open the resource from the classpath.
-        InputStream in = NumberTriangle.class.getClassLoader().getResourceAsStream(fname);
-        if (in == null) {
+        // Obtain resource stream from classpath (e.g., src/main/resources or test resources)
+        InputStream inputStream = NumberTriangle.class.getClassLoader().getResourceAsStream(fname);
+        if (inputStream == null) {
             throw new FileNotFoundException("Resource not found on classpath: " + fname);
         }
 
-        // We will build the triangle row by row and keep references so we can link parents to children.
         List<List<NumberTriangle>> levels = new ArrayList<>();
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
             String line;
-            int rowIdx = 0;
+            int rowIndex = 0;
             while ((line = br.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) {
                     continue; // ignore blank lines
                 }
-                String[] tokens = line.split("\\s+");
-                // Validate triangle shape: row i must have i+1 numbers.
-                if (tokens.length != rowIdx + 1) {
-                    throw new IOException(
-                            "Invalid triangle format at row " + rowIdx +
-                                    ": expected " + (rowIdx + 1) + " numbers, got " + tokens.length
-                    );
+                String[] toks = line.split("\\s+");
+                // Optional validation: ensure triangle shape (row i has i+1 numbers)
+                if (toks.length != rowIndex + 1) {
+                    throw new IOException("Invalid triangle format: row " + rowIndex
+                            + " has " + toks.length + " entries; expected " + (rowIndex + 1));
                 }
-                // Create nodes for this row.
-                List<NumberTriangle> row = new ArrayList<>(tokens.length);
-                for (String t : tokens) {
+
+                // Create nodes for this row
+                List<NumberTriangle> row = new ArrayList<>(toks.length);
+                for (String t : toks) {
                     row.add(new NumberTriangle(Integer.parseInt(t)));
                 }
                 levels.add(row);
 
-                // Link each parent in previous row to its two children in this row:
-                // parent at (rowIdx-1, c) -> left child (rowIdx, c), right child (rowIdx, c+1)
-                if (rowIdx > 0) {
-                    List<NumberTriangle> prev = levels.get(rowIdx - 1);
+                // Link with previous row, creating shared children as appropriate
+                if (rowIndex > 0) {
+                    List<NumberTriangle> prev = levels.get(rowIndex - 1);
+                    // For each parent at (rowIndex-1, c): parent.left = (rowIndex, c); parent.right = (rowIndex, c+1)
                     for (int c = 0; c < prev.size(); c++) {
                         NumberTriangle parent = prev.get(c);
                         parent.setLeft(row.get(c));
                         parent.setRight(row.get(c + 1));
                     }
                 }
-
-                rowIdx++;
+                rowIndex++;
             }
         }
 
         if (levels.isEmpty()) {
-            throw new IOException("Empty triangle: no rows read from " + fname);
+            throw new IOException("Empty triangle: no rows were read from " + fname);
         }
-
-        // Return the topmost node.
+        // Top of the structure
         return levels.get(0).get(0);
     }
 
@@ -165,6 +197,8 @@ public class NumberTriangle {
         NumberTriangle mt = NumberTriangle.loadTriangle("input_tree.txt");
 
         // [not for credit]
+        // You can implement NumberTriangle's maxSumPath method if you want to try to solve
+        // Project Euler Problem 18 (not for credit).
         mt.maxSumPath();
         System.out.println(mt.getRoot());
     }

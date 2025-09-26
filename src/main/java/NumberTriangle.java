@@ -118,13 +118,11 @@ public class NumberTriangle {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
             String line;
             int rowIdx = 0;
-
             while ((line = br.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) {
                     continue; // ignore blank lines
                 }
-
                 String[] tokens = line.split("\\s+");
                 // Validate triangle shape: row i must have i+1 numbers.
                 if (tokens.length != rowIdx + 1) {
@@ -133,7 +131,6 @@ public class NumberTriangle {
                                     ": expected " + (rowIdx + 1) + " numbers, got " + tokens.length
                     );
                 }
-
                 // Create nodes for this row.
                 List<NumberTriangle> row = new ArrayList<>(tokens.length);
                 for (String t : tokens) {
